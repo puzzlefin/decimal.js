@@ -4250,6 +4250,9 @@
      *
      */
     function Decimal(v) {
+      if (!v) {
+        v = '0.00';
+      }
       var e, i, t,
         x = this;
 
