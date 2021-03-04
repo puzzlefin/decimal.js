@@ -37,10 +37,16 @@ export namespace Decimal {
   export type Rounding = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   export type Modulo = Rounding | 9;
   export type Value = string | number | Decimal;
+  export type Innards = { 
+    d: number[];
+    e: number;
+    s: number;
+  };
 
   // http://mikemcl.github.io/decimal.js/#constructor-properties
   export interface Config {
     precision?: number;
+    minPrecision?: number;
     rounding?: Rounding;
     toExpNeg?: number;
     toExpPos?: number;
@@ -85,6 +91,9 @@ export declare class Decimal {
 
   equals(n: Decimal.Value): boolean;
   eq(n: Decimal.Value): boolean;
+
+  notEquals(n: Decimal.Value): boolean;
+  neq(n: Decimal.Value): boolean;
 
   floor(): Decimal;
 
@@ -194,6 +203,8 @@ export declare class Decimal {
   toFixed(decimalPlaces?: number): string;
   toFixed(decimalPlaces: number, rounding: Decimal.Rounding): string;
 
+  toPostgres(): string;
+
   toFraction(max_denominator?: Decimal.Value): Decimal[];
 
   toHexadecimal(significantDigits?: number): string;
@@ -222,11 +233,14 @@ export declare class Decimal {
   toSD(significantDigits: number, rounding: Decimal.Rounding): Decimal;
 
   toString(): string;
+  toStringExp(): string;
 
   truncated(): Decimal;
   trunc(): Decimal;
 
   valueOf(): string;
+
+  static fromPlain(obj: Decimal.Innards): Decimal;
 
   static abs(n: Decimal.Value): Decimal;
   static acos(n: Decimal.Value): Decimal;
@@ -274,6 +288,7 @@ export declare class Decimal {
   static readonly Decimal?: Decimal.Constructor;
 
   static readonly precision: number;
+  static readonly minPrecision: number;
   static readonly rounding: Decimal.Rounding;
   static readonly toExpNeg: number;
   static readonly toExpPos: number;

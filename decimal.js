@@ -41,6 +41,7 @@
       // The maximum number of significant digits of the result of a calculation or base conversion.
       // E.g. `Decimal.config({ precision: 20 });`
       precision: 20,                         // 1 to MAX_DIGITS
+      minPrecision: 2,
 
       // The rounding mode used when rounding to `precision`.
       //
@@ -74,11 +75,11 @@
       // be used, but they may not give useful results.
       modulo: 1,                             // 0 to 9
 
-      // The exponent value at and beneath which `toString` returns exponential notation.
+      // The exponent value at and beneath which `toStringExp` returns exponential notation.
       // JavaScript numbers: -7
       toExpNeg: -7,                          // 0 to -EXP_LIMIT
 
-      // The exponent value at and above which `toString` returns exponential notation.
+      // The exponent value at and above which `toStringExp` returns exponential notation.
       // JavaScript numbers: 21
       toExpPos:  21,                         // 0 to EXP_LIMIT
 
@@ -138,6 +139,7 @@
    *  dividedBy                 div
    *  dividedToIntegerBy        divToInt
    *  equals                    eq
+   *  notEquals                 neq
    *  floor
    *  greaterThan               gt
    *  greaterThanOrEqualTo      gte
@@ -185,9 +187,12 @@
    *  toPower                   pow
    *  toPrecision
    *  toSignificantDigits       toSD
-   *  toString
+   *  toString                 
+   *  toPostgres                toString
+   *  toJSON                    toString
+   *  toStringExp
    *  truncated                 trunc
-   *  valueOf                   toJSON
+   *  valueOf                   
    */
 
 
@@ -466,6 +471,10 @@
   P.equals = P.eq = function (y) {
     return this.cmp(y) === 0;
   };
+
+  P.notEquals = P.neq = function (y) {
+    return !this.eq(y);
+  }
 
 
   /*
@@ -2405,6 +2414,20 @@
     return finalise(new Ctor(x), sd, rm);
   };
 
+  /*
+   * Return a string representing the value of this Decimal.
+   * Uses the default rounding mode.
+   * Limits to the current decimal places or the precision, whichever is
+   * less.
+   *
+   */
+  P.toPostgres = P.toJSON = P.toString = function() {
+    var Ctor = this.constructor;
+    var max = this.dp() > Ctor.precision ? Ctor.precision : this.dp();
+    max = max < Ctor.minPrecision ? Ctor.minPrecision : max;
+    return this.toFixed(max);
+  };
+
 
   /*
    * Return a string representing the value of this Decimal.
@@ -2413,7 +2436,7 @@
    * `toExpPos`, or a negative exponent equal to or less than `toExpNeg`.
    *
    */
-  P.toString = function () {
+  P.toStringExp = function () {
     var x = this,
       Ctor = x.constructor,
       str = finiteToString(x, x.e <= Ctor.toExpNeg || x.e >= Ctor.toExpPos);
@@ -2436,7 +2459,7 @@
    * Unlike `toString`, negative zero will include the minus sign.
    *
    */
-  P.valueOf = P.toJSON = function () {
+  P.valueOf = function () {
     var x = this,
       Ctor = x.constructor,
       str = finiteToString(x, x.e <= Ctor.toExpNeg || x.e >= Ctor.toExpPos);
@@ -4154,6 +4177,7 @@
    * `obj` is an object with one or more of the following properties,
    *
    *   precision  {number}
+   *   minPrecision  {number}
    *   rounding   {number}
    *   toExpNeg   {number}
    *   toExpPos   {number}
@@ -4172,6 +4196,7 @@
       useDefaults = obj.defaults === true,
       ps = [
         'precision', 1, MAX_DIGITS,
+        'minPrecision', 2, MAX_DIGITS,
         'rounding', 0, 8,
         'toExpNeg', -EXP_LIMIT, 0,
         'toExpPos', 0, EXP_LIMIT,
@@ -4233,6 +4258,15 @@
     return new this(x).cosh();
   }
 
+  function fromPlain(obj) {
+    let munge = new this(0);
+    munge.s = obj.s;
+    munge.e = obj.e;
+    munge.d = obj.d;
+    let result = new this(munge);
+    return result;
+  }
+
 
   /*
    * Create and return a Decimal constructor with the same configuration properties as this Decimal
@@ -4250,8 +4284,16 @@
      *
      */
     function Decimal(v) {
-      if (!v) {
-        v = '0.00';
+      // THIS IS A TOTAL HACK FOR class-transform
+      // that calls the constructor with no argument
+      // a side effect of that is that is is the 
+      // constructor of an actual Decimal object THAT
+      // ALREADY EXISTS.
+      // ie,
+      // let bob = new Decimal(1)
+      // let sally = bob.constructor();
+      if (v === undefined) {
+        v = this;
       }
       var e, i, t,
         x = this;
@@ -4373,6 +4415,8 @@
     Decimal.clone = clone;
     Decimal.isDecimal = isDecimalInstance;
 
+    Decimal.fromPlain = fromPlain;
+
     Decimal.abs = abs;
     Decimal.acos = acos;
     Decimal.acosh = acosh;        // ES6
@@ -4413,10 +4457,12 @@
     if (obj === void 0) obj = {};
     if (obj) {
       if (obj.defaults !== true) {
-        ps = ['precision', 'rounding', 'toExpNeg', 'toExpPos', 'maxE', 'minE', 'modulo', 'crypto'];
+        ps = ['precision', 'minPrecision', 'rounding', 'toExpNeg', 'toExpPos', 'maxE', 'minE', 'modulo', 'crypto'];
         for (i = 0; i < ps.length;) if (!obj.hasOwnProperty(p = ps[i++])) obj[p] = this[p];
       }
     }
+
+    console.log("OBJ", obj.minPrecision);
 
     Decimal.config(obj);
 

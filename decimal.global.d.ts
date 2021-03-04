@@ -63,6 +63,7 @@ type DecimalModulo = DecimalRounding | 9;
 // http://mikemcl.github.io/decimal.js/#constructor-properties
 interface DecimalConfig {
   precision?: number;
+  minPrecision?: number;
   rounding?: DecimalRounding;
   toExpNeg?: number;
   toExpPos?: number;
@@ -106,6 +107,9 @@ export declare class Decimal {
 
   equals(n: DecimalValue): boolean;
   eq(n: DecimalValue): boolean;
+
+  notEquals(n: Decimal.Value): boolean;
+  neq(n: Decimal.Value): boolean;
 
   floor(): Decimal;
 
@@ -243,6 +247,7 @@ export declare class Decimal {
   toSD(significantDigits: number, rounding: DecimalRounding): Decimal;
 
   toString(): string;
+  toStringExp(): string;
 
   truncated(): Decimal;
   trunc(): Decimal;
@@ -295,6 +300,7 @@ export declare class Decimal {
   static readonly Decimal?: DecimalConstructor;
 
   static readonly precision: number;
+  static readonly minPrecision: number;
   static readonly rounding: DecimalRounding;
   static readonly toExpNeg: number;
   static readonly toExpPos: number;
