@@ -4462,8 +4462,6 @@
       }
     }
 
-    console.log("OBJ", obj.minPrecision);
-
     Decimal.config(obj);
 
     return Decimal;
